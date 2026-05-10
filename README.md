@@ -7,13 +7,13 @@ An Android companion app for the OverDrive portal. It provides a mobile interfac
 - **Portal WebView**: Loads your OverDrive portal URL in a full-screen WebView with back-navigation support
 - **QR Code onboarding**: Scan the QR code displayed on the portal screen to connect instantly
 - **Manual URL entry**: Type the portal URL directly if a QR code is not available
+- **JWT auto-capture**: Automatically extracts the session JWT from the portal's WebView after login (To use it for any API Call on OverDrive)
+- **Settings blade**: Show OverDrive URL caotured from bar code, change portal URL with bar code or type URL manually.
 
 > The following features require additional backend functionality to be implemented in the main OverDrive portal app:
 
 - **Push notifications**: Register the device with the portal backend to receive FCM push notifications
-- **JWT auto-capture**: Automatically extracts the session JWT from the portal's WebView after login
-- **Settings screen**: View connection status, register for push notifications, change portal URL
-- **Registration log**: On-screen diagnostic log showing every API call and response during push registration
+- **Settings blade**: View push notifications registration status and logs, register for push notifications registration. 
 
 ## Requirements
 
