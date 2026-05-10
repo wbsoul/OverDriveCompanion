@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_base">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/bg_base"
+        app:elevation="0dp">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/bg_base"
+            app:titleTextColor="@color/text_primary"
+            app:theme="@style/Theme.OverDriveCompanion.Toolbar"
+            app:popupTheme="@style/ThemeOverlay.MaterialComponents.Dark" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Camera preview fills the space below the toolbar -->
+    <androidx.camera.view.PreviewView
+        android:id="@+id/previewView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+
+    <!-- Scan hint at the bottom with brand styling -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingBottom="48dp"
+        android:paddingTop="16dp"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp"
+        android:background="#CC0F0F12">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/scan_hint"
+            android:textColor="@color/text_primary"
+            android:textSize="15sp"
+            android:gravity="center"
+            android:lineSpacingMultiplier="1.4" />
+
+        <View
+            android:layout_width="40dp"
+            android:layout_height="2dp"
+            android:layout_marginTop="12dp"
+            android:background="@color/brand_primary" />
+
+    </LinearLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
+
