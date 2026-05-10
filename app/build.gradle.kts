@@ -4,9 +4,6 @@ plugins {
     alias(libs.plugins.google.services)
 }
 
-// Redirect build output outside OneDrive to avoid file-lock conflicts during sync
-layout.buildDirectory.set(file("C:/Temp/ODCompanionBuild"))
-
 android {
     namespace = "com.overdrive.companion"
     compileSdk = 34
