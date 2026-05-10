@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OverDrive Companion</string>
+    <string name="scan_barcode">Scan Barcode</string>
+    <string name="settings">Settings</string>
+    <string name="scan_hint">Point camera at the portal QR/barcode</string>
+    <string name="camera_permission_denied">Camera permission is required to scan the barcode.</string>
+
+    <!-- Welcome screen -->
+    <string name="welcome_tagline">Your portable OverDrive portal</string>
+    <string name="welcome_card_title">Connect to your portal</string>
+    <string name="welcome_card_body">Scan the QR code on your OverDrive portal, or enter the URL manually. You only need to do this once.</string>
+    <string name="scan_button_label">Scan Portal QR Code</string>
+    <string name="welcome_footer">You can scan the QR code displayed on the portal screen or type the URL directly.</string>
+
+    <!-- Settings -->
+    <string name="settings_portal_section">Portal Connection</string>
+    <string name="current_portal_url">Current URL: %1$s</string>
+    <string name="no_url_saved">Not configured</string>
+    <string name="logout_button">Change Portal</string>
+
+    <!-- Change portal dialog -->
+    <string name="logout_title">Change Portal URL</string>
+    <string name="logout_message">You are about to disconnect from:\n\n%1$s\n\nHow would you like to connect to the new portal?</string>
+    <string name="change_portal_scan">Scan QR Code</string>
+    <string name="change_portal_type">Enter URL</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
+    <string name="error_title">Error</string>
+
+    <!-- Manual URL entry -->
+    <string name="enter_url_button">Enter URL Manually</string>
+    <string name="enter_url_dialog_title">Enter Portal URL</string>
+    <string name="enter_url_hint">https://your-portal-url</string>
+    <string name="enter_url_confirm">Connect</string>
+    <string name="enter_url_invalid">Please enter a valid URL</string>
+
+    <!-- Push notification status -->
+    <string name="push_status_label">Push Notifications: %1$s</string>
+    <string name="push_status_registered">Registered ✓</string>
+    <string name="push_status_not_registered">Not registered</string>
+    <string name="push_register_button">Register For Push Notifications</string>
+    <string name="push_register_checking">Checking…</string>
+    <string name="push_register_in_progress">Registering…</string>
+    <string name="push_register_success">Push notifications registered successfully.</string>
+    <string name="push_register_failed">Registration failed. Please try again.</string>
+    <string name="push_register_no_jwt">Please log in to the portal before registering for push notifications.</string>
+
+    <!-- Registration error messages (specific) -->
+    <string name="push_error_network">Could not connect to the portal server. Please check your network and try again.</string>
+    <string name="push_error_server">Cannot reach the portal API (HTTP %1$d). The server may not have push notification support configured yet.</string>
+    <string name="push_error_auth">Authentication failed (HTTP 401). Please log in to the portal and try again.</string>
+    <string name="push_error_unknown">Registration failed (HTTP %1$d). Please try again.</string>
+    <string name="push_error_fcm_token">Could not retrieve a Firebase token from this device. Please try again.</string>
+    <string name="push_error_play_services">Google Play Services is not available on this device. Push notifications require a device with Google Play Services installed.</string>
+    <string name="push_register_replace_title">Replace Existing Registration</string>
+    <string name="push_register_replace_message">Another companion app is already registered for push notifications on this portal. Registering this device will replace it. Continue?</string>
+    <string name="push_register_replace_confirm">Replace</string>
+
+    <!-- Debug log -->
+    <string name="debug_log_section">Push Registration Log</string>
+    <string name="debug_log_clear">Clear</string>
+    <string name="debug_log_empty">No activity yet.</string>
+</resources>

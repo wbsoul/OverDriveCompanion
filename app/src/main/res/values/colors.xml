@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Legacy -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Brand Colors (matching OverDrive portal) -->
+    <color name="brand_primary">#00D4AA</color>
+    <color name="brand_secondary">#0EA5E9</color>
+    <color name="brand_cyan_glow">#3300D4AA</color>
+
+    <!-- Background Colors -->
+    <color name="bg_base">#0F0F12</color>
+    <color name="bg_surface">#16161A</color>
+    <color name="bg_elevated">#1E1E24</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#A1A1AA</color>
+    <color name="text_muted">#71717A</color>
+
+    <!-- Card / Border -->
+    <color name="card_border">#1AFFFFFF</color>
+    <color name="card_border_glow">@color/brand_primary</color>
+
+    <!-- Status -->
+    <color name="status_success">#22C55E</color>
+    <color name="status_warning">#F59E0B</color>
+    <color name="status_danger">#EF4444</color>
+</resources>
