@@ -4,21 +4,24 @@ An Android companion app for the OverDrive portal. It provides a mobile interfac
 
 ## Features
 
-- **Portal WebView** — Loads your OverDrive portal URL in a full-screen WebView with back-navigation support
-- **QR Code onboarding** — Scan the QR code displayed on the portal screen to connect instantly
-- **Manual URL entry** — Type the portal URL directly if a QR code is not available
-- **Push notifications** — Register the device with the portal backend to receive FCM push notifications
-- **JWT auto-capture** — Automatically extracts the session JWT from the portal's WebView after login
-- **Settings screen** — View connection status, register for push notifications, change portal URL
-- **Registration log** — On-screen diagnostic log showing every API call and response during push registration
+- **Portal WebView**: Loads your OverDrive portal URL in a full-screen WebView with back-navigation support
+- **QR Code onboarding**: Scan the QR code displayed on the portal screen to connect instantly
+- **Manual URL entry**: Type the portal URL directly if a QR code is not available
+
+> The following features require additional backend functionality to be implemented in the main OverDrive portal app:
+
+- **Push notifications**: Register the device with the portal backend to receive FCM push notifications
+- **JWT auto-capture**: Automatically extracts the session JWT from the portal's WebView after login
+- **Settings screen**: View connection status, register for push notifications, change portal URL
+- **Registration log**: On-screen diagnostic log showing every API call and response during push registration
 
 ## Requirements
 
 - Android 8.0 (API 26) or higher
 - Google Play Services (required for Firebase Cloud Messaging / push notifications)
 - An OverDrive portal instance with the following API endpoints:
-  - `GET /api/fcm/status` — returns `{"registered": true|false}`
-  - `POST /api/fcm/register` — accepts `{"token": "<fcm-token>"}` with `Authorization: Bearer <jwt>`
+  - `GET /api/fcm/status`: returns `{"registered": true|false}`
+  - `POST /api/fcm/register`: accepts `{"token": "<fcm-token>"}` with `Authorization: Bearer <jwt>`
 
 ## Installation
 
@@ -71,4 +74,4 @@ app/src/main/res/
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
+MIT License: see [LICENSE](LICENSE) for details.
