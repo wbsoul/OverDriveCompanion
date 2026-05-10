@@ -57,4 +57,4 @@ app/src/main/res/
 
 ## License
 
-Internal use only.
+MIT License — see [LICENSE](LICENSE) for details.
