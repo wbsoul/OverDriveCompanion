@@ -20,7 +20,21 @@ An Android companion app for the OverDrive portal. It provides a mobile interfac
   - `GET /api/fcm/status` — returns `{"registered": true|false}`
   - `POST /api/fcm/register` — accepts `{"token": "<fcm-token>"}` with `Authorization: Bearer <jwt>`
 
-## Building
+## Installation
+
+### Download the APK (no build required)
+
+1. Go to the [Releases page](https://github.com/wbsoul/OverDriveCompanion/releases/latest)
+2. Under **Assets**, tap or click `app-debug.apk` to download it
+3. On your Android device:
+   - Open **Settings → Apps → Special app access → Install unknown apps**
+   - Allow your browser or file manager to install unknown apps
+4. Open the downloaded APK file and tap **Install**
+5. Launch **OverDrive Companion** from your app drawer
+
+> If your device shows a warning about unknown sources, this is normal for apps installed outside the Play Store. The app is safe to install.
+
+## Building from Source
 
 Prerequisites: JDK 21, Android SDK
 
