@@ -4,9 +4,9 @@ An Android companion app for the OverDrive portal. It provides a mobile interfac
 
 ## Screenshots
 
-| Portal Status | App Menu | Settings | Notifications |
-|:---:|:---:|:---:|:---:|
-| ![Portal Status](docs/screenshots/01_push_notifications_portal.jpg) | ![App Menu](docs/screenshots/02_portal_menu.jpg) | ![Settings](docs/screenshots/03_settings.jpg) | ![Notifications](docs/screenshots/04_notifications.jpg) |
+| Welcome | Push Notifications Setting and status | App Menu | Settings | Notifications |
+|:---:|:---:|:---:|:---:|:---:|
+| ![Welcome](docs/screenshots/00_welcome.jpg) | ![Portal Status](docs/screenshots/01_push_notifications_portal.jpg) | ![App Menu](docs/screenshots/02_portal_menu.jpg) | ![Settings](docs/screenshots/03_settings.jpg) | ![Notifications](docs/screenshots/04_notifications.jpg) |
 
 ## Features
 
