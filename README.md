@@ -2,18 +2,27 @@
 
 An Android companion app for the OverDrive portal. It provides a mobile interface to the portal via an embedded WebView, with support for push notifications and QR code / manual URL onboarding.
 
+## Screenshots
+
+| Portal Status | App Menu | Settings | Notifications |
+|:---:|:---:|:---:|:---:|
+| ![Portal Status](docs/screenshots/01_push_notifications_portal.jpg) | ![App Menu](docs/screenshots/02_portal_menu.jpg) | ![Settings](docs/screenshots/03_settings.jpg) | ![Notifications](docs/screenshots/04_notifications.jpg) |
+
 ## Features
 
 - **Portal WebView**: Loads your OverDrive portal URL in a full-screen WebView with back-navigation support
 - **QR Code onboarding**: Scan the QR code displayed on the portal screen to connect instantly
 - **Manual URL entry**: Type the portal URL directly if a QR code is not available
-- **JWT auto-capture**: Automatically extracts the session JWT from the portal's WebView after login (To use it for any API Call on OverDrive)
-- **Settings blade**: Show OverDrive URL caotured from bar code, change portal URL with bar code or type URL manually.
+- **JWT auto-capture**: Automatically extracts the session JWT from the portal's WebView after login (used for authenticated API calls)
+- **Refresh portal**: Floating refresh button on the main screen reloads the portal WebView
+- **Settings blade**: Shows captured portal URL, push notification status, device installation ID, and registration log
 
 > The following features require additional backend functionality to be implemented in the main OverDrive portal app:
 
 - **Push notifications**: Register the device with the portal backend to receive FCM push notifications
-- **Settings blade**: View push notifications registration status and logs, register for push notifications registration. 
+- **Device identity**: Sends Firebase Installation ID alongside the FCM token so the backend can support multiple registered devices per user
+- **Remove registration**: Deregister the current device from push notifications via the Settings screen
+- **Refresh status**: Toolbar refresh button in Settings re-checks the server registration state; cached status is only updated on a successful HTTP 200 response
 
 ## Requirements
 
@@ -21,7 +30,8 @@ An Android companion app for the OverDrive portal. It provides a mobile interfac
 - Google Play Services (required for Firebase Cloud Messaging / push notifications)
 - An OverDrive portal instance with the following API endpoints:
   - `GET /api/fcm/status`: returns `{"registered": true|false}`
-  - `POST /api/fcm/register`: accepts `{"token": "<fcm-token>"}` with `Authorization: Bearer <jwt>`
+  - `POST /api/fcm/register`: accepts `{"token": "<fcm-token>", "installationId": "<firebase-installation-id>"}` with `Authorization: Bearer <jwt>`
+  - `POST /api/fcm/clear`: removes the device registration; returns `{"status": "ok"}` with `Authorization: Bearer <jwt>`
 
 ## Installation
 
