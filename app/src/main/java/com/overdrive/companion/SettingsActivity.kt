@@ -12,6 +12,7 @@ import java.util.Locale
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.textfield.TextInputLayout
+import com.google.firebase.installations.FirebaseInstallations
 import com.google.firebase.messaging.FirebaseMessaging
 import com.overdrive.companion.databinding.ActivitySettingsBinding
 import org.json.JSONException
@@ -28,6 +29,7 @@ class SettingsActivity : AppCompatActivity() {
     companion object {
         private const val FCM_REGISTER_PATH = "/api/fcm/register"
         private const val FCM_STATUS_PATH = "/api/fcm/status"
+        private const val FCM_CLEAR_PATH = "/api/fcm/clear"
         private const val CONNECT_TIMEOUT_MS = 8_000
         private const val READ_TIMEOUT_MS = 8_000
     }
@@ -69,11 +71,16 @@ class SettingsActivity : AppCompatActivity() {
         log("JWT stored: ${if (prefs.authJwt != null) "yes (${prefs.authJwt!!.length} chars)" else "NO — not captured from portal"}")
         log("Portal URL: ${prefs.savedUrl ?: "not set"}")
         log("Local push registered: ${prefs.pushNotificationRegistered}")
+        log("Installation ID: ${prefs.installationId ?: "not yet obtained"}")
 
         checkServerRegistrationStatus()
 
         binding.btnRegisterPush.setOnClickListener {
             onRegisterPushClicked()
+        }
+
+        binding.btnClearPush.setOnClickListener {
+            onClearPushClicked()
         }
 
         binding.btnLogout.setOnClickListener {
@@ -99,6 +106,14 @@ class SettingsActivity : AppCompatActivity() {
             getString(R.string.push_status_not_registered)
         binding.tvPushStatus.text = getString(R.string.push_status_label, pushStatusText)
         binding.btnRegisterPush.visibility = if (registered) View.GONE else View.VISIBLE
+        binding.btnClearPush.visibility = if (registered) View.VISIBLE else View.GONE
+        val installationId = prefs.installationId
+        if (installationId != null) {
+            binding.tvInstallationId.visibility = View.VISIBLE
+            binding.tvInstallationId.text = getString(R.string.push_installation_id, installationId)
+        } else {
+            binding.tvInstallationId.visibility = View.GONE
+        }
     }
 
     /**
@@ -132,7 +147,7 @@ class SettingsActivity : AppCompatActivity() {
                 }
                 val responseCode = conn.responseCode
                 log("Status GET → HTTP $responseCode")
-                if (responseCode in 200..299) {
+                if (responseCode == 200) {
                     val body = conn.inputStream.bufferedReader().readText()
                     conn.disconnect()
                     log("Status body: $body")
@@ -140,7 +155,7 @@ class SettingsActivity : AppCompatActivity() {
                 } else {
                     val errBody = conn.errorStream?.bufferedReader()?.readText() ?: ""
                     conn.disconnect()
-                    log("Status error body: $errBody")
+                    log("Status HTTP $responseCode — retaining cached state")
                     null
                 }
             } catch (e: Exception) {
@@ -149,11 +164,12 @@ class SettingsActivity : AppCompatActivity() {
             }
             runOnUiThread {
                 if (registered != null) {
-                    log("Server says registered=$registered — updating local prefs")
+                    log("Server confirmed registered=$registered — updating cached state")
                     prefs.pushNotificationRegistered = registered
                     updatePushStatusUi()
                 } else {
-                    log("Status check inconclusive — local state unchanged")
+                    log("Status check inconclusive — cached state retained (registered=${prefs.pushNotificationRegistered})")
+                    updatePushStatusUi()
                 }
             }
         }.start()
@@ -245,6 +261,85 @@ class SettingsActivity : AppCompatActivity() {
         binding.btnRegisterPush.text = getString(R.string.push_register_button)
     }
 
+    private fun onClearPushClicked() {
+        val jwt = prefs.authJwt
+        if (jwt.isNullOrBlank()) {
+            showErrorDialog(R.string.push_register_no_jwt)
+            return
+        }
+        AlertDialog.Builder(this, R.style.Theme_OverDriveCompanion_Dialog)
+            .setTitle(R.string.push_clear_confirm_title)
+            .setMessage(R.string.push_clear_confirm_message)
+            .setPositiveButton(R.string.push_clear_confirm_button) { _, _ ->
+                callClearApi(jwt)
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun callClearApi(jwt: String) {
+        val baseUrl = prefs.savedUrl ?: return
+        log("------------------------------------")
+        log("Clearing FCM registration…")
+        binding.btnClearPush.isEnabled = false
+        binding.btnClearPush.text = getString(R.string.push_clear_in_progress)
+        Thread {
+            var httpCode: Int? = null
+            val success = try {
+                val normalised = if (baseUrl.startsWith("http://") || baseUrl.startsWith("https://"))
+                    baseUrl else "https://$baseUrl"
+                val clearUrl = URL(normalised.trimEnd('/') + FCM_CLEAR_PATH)
+                log("POST $clearUrl")
+                val conn = clearUrl.openConnection() as HttpURLConnection
+                conn.apply {
+                    requestMethod = "POST"
+                    setRequestProperty("Content-Type", "application/json")
+                    setRequestProperty("Authorization", "Bearer $jwt")
+                    connectTimeout = CONNECT_TIMEOUT_MS
+                    readTimeout = READ_TIMEOUT_MS
+                    doOutput = true
+                }
+                OutputStreamWriter(conn.outputStream).use { it.write("{}") }
+                httpCode = conn.responseCode
+                log("Clear POST → HTTP $httpCode")
+                if (httpCode!! in 200..299) {
+                    val body = conn.inputStream.bufferedReader().readText()
+                    conn.disconnect()
+                    log("Clear response: $body")
+                    try { JSONObject(body).optString("status") == "ok" } catch (e: JSONException) { false }
+                } else {
+                    val errBody = conn.errorStream?.bufferedReader()?.readText() ?: ""
+                    conn.disconnect()
+                    log("Clear error body: $errBody")
+                    false
+                }
+            } catch (e: Exception) {
+                log("Clear exception: ${e.message}")
+                false
+            }
+
+            runOnUiThread {
+                binding.btnClearPush.isEnabled = true
+                binding.btnClearPush.text = getString(R.string.push_clear_button)
+                if (success) {
+                    log("Clear successful — refreshing server status…")
+                    prefs.pushNotificationRegistered = false
+                    updatePushStatusUi()
+                    checkServerRegistrationStatus()
+                } else {
+                    val code = httpCode
+                    val message = when {
+                        code == null       -> getString(R.string.push_error_network)
+                        code == 401        -> getString(R.string.push_error_auth)
+                        code in 500..599   -> getString(R.string.push_error_server, code)
+                        else               -> getString(R.string.push_error_unknown, code)
+                    }
+                    showErrorDialog(message)
+                }
+            }
+        }.start()
+    }
+
     private fun proceedWithFcmRegistration(jwt: String) {
         binding.btnRegisterPush.text = getString(R.string.push_register_in_progress)
         log("Fetching FCM token…")
@@ -265,11 +360,21 @@ class SettingsActivity : AppCompatActivity() {
             val fcmToken = task.result
             log("FCM token obtained (${fcmToken.length} chars)")
             prefs.fcmToken = fcmToken
-            registerTokenWithJwt(fcmToken, jwt)
+            log("Fetching Firebase Installation ID…")
+            FirebaseInstallations.getInstance().id.addOnCompleteListener { idTask ->
+                val installationId = if (idTask.isSuccessful) idTask.result else null
+                if (installationId != null) {
+                    log("Installation ID: $installationId")
+                    prefs.installationId = installationId
+                } else {
+                    log("Installation ID fetch failed: ${idTask.exception?.message}")
+                }
+                registerTokenWithJwt(fcmToken, installationId ?: prefs.installationId, jwt)
+            }
         }
     }
 
-    private fun registerTokenWithJwt(fcmToken: String, jwt: String) {
+    private fun registerTokenWithJwt(fcmToken: String, installationId: String?, jwt: String) {
         val baseUrl = prefs.savedUrl ?: return
         log("POSTing FCM token to backend…")
         Thread {
@@ -288,7 +393,10 @@ class SettingsActivity : AppCompatActivity() {
                     readTimeout = READ_TIMEOUT_MS
                     doOutput = true
                 }
-                val body = """{"token":"$fcmToken"}"""
+                val body = JSONObject().apply {
+                    put("token", fcmToken)
+                    installationId?.let { put("installationId", it) }
+                }.toString()
                 OutputStreamWriter(conn.outputStream).use { it.write(body) }
                 httpCode = conn.responseCode
                 log("Register POST → HTTP $httpCode")
@@ -392,5 +500,20 @@ class SettingsActivity : AppCompatActivity() {
     override fun onSupportNavigateUp(): Boolean {
         finish()
         return true
+    }
+
+    override fun onCreateOptionsMenu(menu: android.view.Menu): Boolean {
+        menuInflater.inflate(R.menu.settings_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {
+        if (item.itemId == R.id.action_refresh) {
+            log("------------------------------------")
+            log("Manual refresh triggered…")
+            checkServerRegistrationStatus()
+            return true
+        }
+        return super.onOptionsItemSelected(item)
     }
 }

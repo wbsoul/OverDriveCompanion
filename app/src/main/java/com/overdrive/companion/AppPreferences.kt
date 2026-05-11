@@ -24,10 +24,15 @@ class AppPreferences(context: Context) {
         get() = prefs.getString(KEY_AUTH_JWT, null)
         set(value) = prefs.edit().putString(KEY_AUTH_JWT, value).apply()
 
+    var installationId: String?
+        get() = prefs.getString(KEY_INSTALLATION_ID, null)
+        set(value) = prefs.edit().putString(KEY_INSTALLATION_ID, value).apply()
+
     companion object {
         private const val KEY_URL = "portal_url"
         private const val KEY_FCM_TOKEN = "fcm_token"
         private const val KEY_PUSH_REGISTERED = "push_registered"
         private const val KEY_AUTH_JWT = "auth_jwt"
+        private const val KEY_INSTALLATION_ID = "installation_id"
     }
 }

@@ -17,6 +17,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.material.textfield.TextInputLayout
+import com.google.firebase.installations.FirebaseInstallations
 import com.google.firebase.messaging.FirebaseMessaging
 import com.overdrive.companion.databinding.ActivityMainBinding
 import java.io.OutputStreamWriter
@@ -113,6 +114,13 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
 
+        binding.btnRefresh.setOnClickListener {
+            val url = prefs.savedUrl
+            if (!url.isNullOrBlank()) {
+                loadUrl(url)
+            }
+        }
+
         val savedUrl = prefs.savedUrl
         if (savedUrl.isNullOrBlank()) {
             showWelcome()
@@ -162,7 +170,11 @@ class MainActivity : AppCompatActivity() {
             val token = task.result
             prefs.fcmToken = token
             val baseUrl = prefs.savedUrl ?: return@addOnCompleteListener
-            registerTokenWithBackend(baseUrl, token)
+            FirebaseInstallations.getInstance().id.addOnCompleteListener { idTask ->
+                val installationId = if (idTask.isSuccessful) idTask.result else null
+                if (installationId != null) prefs.installationId = installationId
+                registerTokenWithBackend(baseUrl, token, installationId ?: prefs.installationId)
+            }
         }
     }
 
@@ -171,7 +183,7 @@ class MainActivity : AppCompatActivity() {
      * If the endpoint is absent (4xx/5xx) or unreachable, show a local notification
      * informing the user that push notifications are not supported on that backend.
      */
-    private fun registerTokenWithBackend(baseUrl: String, token: String) {
+    private fun registerTokenWithBackend(baseUrl: String, token: String, installationId: String?) {
         Thread {
             val success = try {
                 val normalised = if (baseUrl.startsWith("http://") || baseUrl.startsWith("https://"))
@@ -189,7 +201,10 @@ class MainActivity : AppCompatActivity() {
                     readTimeout = READ_TIMEOUT_MS
                     doOutput = true
                 }
-                val body = """{"token":"$token"}"""
+                val body = JSONObject().apply {
+                    put("token", token)
+                    installationId?.let { put("installationId", it) }
+                }.toString()
                 OutputStreamWriter(conn.outputStream).use { it.write(body) }
                 val responseCode = conn.responseCode
                 if (responseCode in 200..299) {

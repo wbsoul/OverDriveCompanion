@@ -39,6 +39,7 @@
     <string name="push_status_label">Push Notifications: %1$s</string>
     <string name="push_status_registered">Registered ✓</string>
     <string name="push_status_not_registered">Not registered</string>
+    <string name="push_installation_id">Device ID: %1$s</string>
     <string name="push_register_button">Register For Push Notifications</string>
     <string name="push_register_checking">Checking…</string>
     <string name="push_register_in_progress">Registering…</string>
@@ -57,8 +58,18 @@
     <string name="push_register_replace_message">Another companion app is already registered for push notifications on this portal. Registering this device will replace it. Continue?</string>
     <string name="push_register_replace_confirm">Replace</string>
 
+    <!-- Clear registration -->
+    <string name="push_clear_button">Remove Push Registration</string>
+    <string name="push_clear_in_progress">Removing…</string>
+    <string name="push_clear_confirm_title">Remove Registration</string>
+    <string name="push_clear_confirm_message">This will remove push notifications for this device. You can re-register at any time.</string>
+    <string name="push_clear_confirm_button">Remove</string>
+
     <!-- Debug log -->
     <string name="debug_log_section">Push Registration Log</string>
     <string name="debug_log_clear">Clear</string>
     <string name="debug_log_empty">No activity yet.</string>
+
+    <!-- Toolbar actions -->
+    <string name="action_refresh">Refresh</string>
 </resources>

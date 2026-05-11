@@ -27,6 +27,7 @@ mlkit-barcode = { group = "com.google.mlkit", name = "barcode-scanning", version
 # Firebase (BOM manages individual versions)
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging-ktx" }
+firebase-installations = { group = "com.google.firebase", name = "firebase-installations-ktx" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

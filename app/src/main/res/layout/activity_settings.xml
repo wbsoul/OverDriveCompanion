@@ -78,7 +78,18 @@
                         android:textColor="@color/text_secondary"
                         android:textSize="13sp"
                         android:lineSpacingMultiplier="1.4"
-                        android:layout_marginBottom="12dp" />
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/tvInstallationId"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace"
+                        android:lineSpacingMultiplier="1.3"
+                        android:layout_marginBottom="12dp"
+                        android:visibility="gone" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnRegisterPush"
@@ -92,6 +103,22 @@
                         android:layout_marginBottom="12dp"
                         android:visibility="gone"
                         app:backgroundTint="@color/brand_primary"
+                        app:cornerRadius="12dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnClearPush"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingTop="14dp"
+                        android:paddingBottom="14dp"
+                        android:text="@string/push_clear_button"
+                        android:textColor="@color/brand_primary"
+                        android:textSize="14sp"
+                        android:layout_marginBottom="12dp"
+                        android:visibility="gone"
+                        app:backgroundTint="@color/bg_elevated"
+                        app:strokeColor="@color/brand_primary"
+                        app:strokeWidth="1dp"
                         app:cornerRadius="12dp" />
 
                     <com.google.android.material.button.MaterialButton
