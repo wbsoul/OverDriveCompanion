@@ -6,7 +6,9 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import android.webkit.GeolocationPermissions
 import android.webkit.JavascriptInterface
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -80,6 +82,16 @@ class MainActivity : AppCompatActivity() {
             attemptFcmRegistration()
         }
         // If denied, we silently skip — push simply won't work
+    }
+
+    // Holds the WebChromeClient geolocation callback until the system permission result arrives
+    private var locationPermissionCallback: ((Boolean) -> Unit)? = null
+
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        locationPermissionCallback?.invoke(granted)
+        locationPermissionCallback = null
     }
 
     private val scannerLauncher = registerForActivityResult(
@@ -291,10 +303,71 @@ class MainActivity : AppCompatActivity() {
             settings.domStorageEnabled = true
             settings.loadWithOverviewMode = true
             settings.useWideViewPort = true
+            settings.setGeolocationEnabled(true)
             addJavascriptInterface(AndroidBridge(), "AndroidBridge")
+            webChromeClient = object : WebChromeClient() {
+                override fun onGeolocationPermissionsShowPrompt(
+                    origin: String,
+                    callback: GeolocationPermissions.Callback
+                ) {
+                    // Check we have the native location permission first
+                    val hasPermission = ContextCompat.checkSelfPermission(
+                        this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED
+                    if (hasPermission) {
+                        // Grant the WebView origin permission, persist for session
+                        callback.invoke(origin, true, false)
+                    } else {
+                        // Request it from the user then re-invoke once granted
+                        locationPermissionCallback = { granted ->
+                            callback.invoke(origin, granted, false)
+                        }
+                        locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                    }
+                }
+            }
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                    view.loadUrl(request.url.toString())
+                    val uri = request.url
+                    val scheme = uri.scheme ?: ""
+                    val host = uri.host ?: ""
+
+                    // intent:// — parse and fire at the OS (e.g. Google Maps deep links)
+                    if (scheme == "intent") {
+                        try {
+                            val intent = android.content.Intent.parseUri(
+                                uri.toString(), android.content.Intent.URI_INTENT_SCHEME
+                            )
+                            startActivity(intent)
+                        } catch (e: Exception) {
+                            // No app can handle it — ignore silently
+                        }
+                        return true
+                    }
+
+                    // geo: links — open directly in Maps
+                    if (scheme == "geo") {
+                        try {
+                            startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, uri))
+                        } catch (e: Exception) { }
+                        return true
+                    }
+
+                    // Google Maps https URLs — open in Maps app, not WebView
+                    if ((scheme == "http" || scheme == "https") &&
+                        (host == "maps.google.com" || host == "www.google.com" && uri.path?.startsWith("/maps") == true)) {
+                        try {
+                            startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, uri))
+                        } catch (e: Exception) {
+                            view.loadUrl(uri.toString()) // fallback to WebView if Maps not installed
+                        }
+                        return true
+                    }
+
+                    // All other http/https — load inside WebView
+                    if (scheme == "http" || scheme == "https") {
+                        view.loadUrl(uri.toString())
+                    }
                     return true
                 }
 
