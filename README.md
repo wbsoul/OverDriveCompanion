@@ -82,6 +82,39 @@ app/src/main/res/
 └── drawable/                # Icons and backgrounds
 ```
 
+## Changelog
+
+### v1.4 — 2026-05-16
+- **Fix:** Tapping a push notification now correctly opens the app on the associated recording in the Events page instead of just opening the home screen
+- **Fix:** Improved deep-link navigation timing — the portal SPA is fully initialised before navigating, preventing the home route from overriding the target page
+- **Fix:** Relative video URLs in notification payloads are now correctly resolved against the saved portal base URL
+- **Fix:** The floating Refresh button now reloads the current page in place rather than navigating back to the portal home page
+
+### v1.3 — 2026-05-15
+- **Feature:** Geolocation support — the portal WebView can now request the device's location (with native permission prompt)
+- **Feature:** Google Maps intent routing — Maps links open in the Maps app rather than in the WebView
+- Added welcome screen and portal screenshots to README
+
+### v1.2 — 2026-05-14
+- **Feature:** Firebase Installation ID — sent alongside the FCM token so the backend can distinguish multiple registered devices per user
+- **Feature:** Deregister device — Settings screen now has a "Remove Push Registration" button to unsubscribe from notifications
+- **Feature:** Refresh registration status — toolbar button in Settings re-checks the server-side registration state
+- **Feature:** Floating Refresh button on the main screen to reload the portal WebView
+
+### v1.1 — 2026-05-13
+- Added MIT license
+- Added README with feature list, API documentation, installation instructions, and building from source guide
+- Added APK download instructions pointing to the GitHub Releases page
+
+### v1.0 — 2026-05-12
+- Initial release
+- Portal WebView with full-screen display and back-navigation support
+- QR code onboarding via camera scanner
+- Manual URL entry dialog
+- JWT auto-capture from portal WebView session
+- FCM push notification registration with OverDrive backend
+- Settings screen showing portal URL, push registration status, and debug log
+
 ## License
 
 MIT License: see [LICENSE](LICENSE) for details.

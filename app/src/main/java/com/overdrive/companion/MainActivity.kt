@@ -87,6 +87,10 @@ class MainActivity : AppCompatActivity() {
     // Holds the WebChromeClient geolocation callback until the system permission result arrives
     private var locationPermissionCallback: ((Boolean) -> Unit)? = null
 
+    // Pending deep-link video URL received from a notification tap.
+    // Set before the portal base URL loads; consumed once in onPageFinished.
+    private var pendingVideoUrl: String? = null
+
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -127,16 +131,27 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnRefresh.setOnClickListener {
-            val url = prefs.savedUrl
-            if (!url.isNullOrBlank()) {
-                loadUrl(url)
+            val currentUrl = binding.webView.url
+            if (!currentUrl.isNullOrBlank()) {
+                binding.webView.reload()
+            } else {
+                val url = prefs.savedUrl
+                if (!url.isNullOrBlank()) loadUrl(url)
             }
         }
 
         val savedUrl = prefs.savedUrl
+        val videoUrl = intent?.getStringExtra(OdcMessagingService.EXTRA_VIDEO_URL)
         if (savedUrl.isNullOrBlank()) {
             showWelcome()
         } else {
+            // Always load the base portal URL first so the web app can initialise
+            // its auth context and routing. If this launch came from a notification
+            // tap, store the target video URL — onPageFinished will navigate to it
+            // once the portal is ready.
+            if (!videoUrl.isNullOrBlank()) {
+                pendingVideoUrl = videoUrl
+            }
             showWebView(savedUrl)
         }
 
@@ -157,6 +172,19 @@ class MainActivity : AppCompatActivity() {
         // Attempt FCM registration each resume if not yet registered and a URL is configured
         if (!prefs.savedUrl.isNullOrBlank() && !prefs.pushNotificationRegistered) {
             requestNotificationPermissionThenRegister()
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        // Called when the activity is already running (singleTop) and a notification is tapped.
+        // The portal WebView is already loaded, so navigate directly — no two-step dance needed.
+        // Clear any stale pendingVideoUrl first to avoid a race with the fallback timer.
+        val videoUrl = intent.getStringExtra(OdcMessagingService.EXTRA_VIDEO_URL)
+        if (!videoUrl.isNullOrBlank()) {
+            pendingVideoUrl = null
+            navigateToPendingUrl(videoUrl)
         }
     }
 
@@ -284,6 +312,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * Navigates the WebView to [videoUrl], resolving it against [AppPreferences.savedUrl]
+     * if it is a relative path. Also ensures the WebView container is visible.
+     */
+    private fun navigateToPendingUrl(videoUrl: String) {
+        val resolved = if (videoUrl.startsWith("http://") || videoUrl.startsWith("https://")) {
+            videoUrl
+        } else {
+            // Relative path — resolve against the saved portal base URL
+            val base = prefs.savedUrl?.let {
+                if (it.startsWith("http://") || it.startsWith("https://")) it else "https://$it"
+            }?.trimEnd('/') ?: return
+            if (videoUrl.startsWith("/")) base + videoUrl else "$base/$videoUrl"
+        }
+        binding.welcomePanel.visibility = View.GONE
+        binding.webViewContainer.visibility = View.VISIBLE
+        binding.webView.loadUrl(resolved)
+    }
+
+    /**
      * JavaScript bridge injected into the portal WebView.
      * The portal page should call window.AndroidBridge.setAuthToken(jwt)
      * after a successful login to enable JWT-authenticated push registration.
@@ -293,6 +340,14 @@ class MainActivity : AppCompatActivity() {
         fun setAuthToken(jwt: String) {
             if (jwt.isNotBlank()) {
                 prefs.authJwt = jwt
+                // Primary deep-link trigger: the JWT probe script runs after the SPA has
+                // initialised, so this fires at exactly the right moment — after the portal
+                // router is ready but before any default-route navigation completes.
+                val pending = pendingVideoUrl
+                if (pending != null) {
+                    pendingVideoUrl = null
+                    runOnUiThread { navigateToPendingUrl(pending) }
+                }
             }
         }
     }
@@ -376,6 +431,19 @@ class MainActivity : AppCompatActivity() {
                     // Probe common JWT storage locations so the bridge is populated
                     // even when the user is already logged in on page load.
                     view.evaluateJavascript(JWT_PROBE_SCRIPT, null)
+                    // Fallback deep-link trigger: if the JWT probe didn't fire
+                    // setAuthToken within 1.5 s (e.g. user is not yet logged in),
+                    // attempt navigation anyway. Re-checks pendingVideoUrl inside
+                    // the lambda so it's a no-op if setAuthToken already consumed it.
+                    if (pendingVideoUrl != null) {
+                        view.postDelayed({
+                            val pending = pendingVideoUrl
+                            if (pending != null) {
+                                pendingVideoUrl = null
+                                navigateToPendingUrl(pending)
+                            }
+                        }, 1500)
+                    }
                 }
             }
         }
