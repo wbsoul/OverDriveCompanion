@@ -84,6 +84,16 @@ app/src/main/res/
 
 ## Changelog
 
+### v1.5 — 2026-05-16
+- **Feature:** Notification alert popup — tapping a push notification now shows a popup dialog before opening the app, displaying the event thumbnail image, title, and body text
+- **Feature:** Detection badge — Motion Detected notifications show a colour-coded pill badge with emoji and confidence percentage:
+  - 🧍 Person detected → red badge
+  - 🚗 Car detected → blue badge
+  - 🚲 Bike detected → green badge
+- **Feature:** Popup action button context — shows **Play Video** (navigates directly to the recording) for motion events with a video, or **Open Events** for non-video events such as proximity alerts
+- **Feature:** Two notification payload types supported: `action=play_video` (with `video_url` + `thumbnail_url`) and `action=open_events` (proximity / no video)
+- **Fix:** Replaced unreliable SPA-timing deep-link approach with a reliable dialog-first flow that always works regardless of portal load state
+
 ### v1.4 — 2026-05-16
 - **Fix:** Tapping a push notification now correctly opens the app on the associated recording in the Events page instead of just opening the home screen
 - **Fix:** Improved deep-link navigation timing — the portal SPA is fully initialised before navigating, preventing the home route from overriding the target page

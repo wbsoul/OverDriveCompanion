@@ -72,4 +72,14 @@
 
     <!-- Toolbar actions -->
     <string name="action_refresh">Refresh</string>
+
+    <!-- Notification channel -->
+    <string name="notification_channel_name">OverDrive Alerts</string>
+    <string name="notification_channel_description">Motion and recording alerts from your OverDrive portal</string>
+
+    <!-- Notification alert dialog -->
+    <string name="notification_alert_thumbnail_desc">Event thumbnail</string>
+    <string name="notification_btn_dismiss">Dismiss</string>
+    <string name="notification_btn_play_video">Play Video</string>
+    <string name="notification_btn_open_events">Open Events</string>
 </resources>

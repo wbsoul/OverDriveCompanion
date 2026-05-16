@@ -11,8 +11,15 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
+import android.graphics.BitmapFactory
+import android.graphics.drawable.GradientDrawable
 import android.webkit.WebViewClient
+import android.widget.Button
 import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.ProgressBar
+import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -87,10 +94,6 @@ class MainActivity : AppCompatActivity() {
     // Holds the WebChromeClient geolocation callback until the system permission result arrives
     private var locationPermissionCallback: ((Boolean) -> Unit)? = null
 
-    // Pending deep-link video URL received from a notification tap.
-    // Set before the portal base URL loads; consumed once in onPageFinished.
-    private var pendingVideoUrl: String? = null
-
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -141,19 +144,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         val savedUrl = prefs.savedUrl
-        val videoUrl = intent?.getStringExtra(OdcMessagingService.EXTRA_VIDEO_URL)
         if (savedUrl.isNullOrBlank()) {
             showWelcome()
         } else {
-            // Always load the base portal URL first so the web app can initialise
-            // its auth context and routing. If this launch came from a notification
-            // tap, store the target video URL — onPageFinished will navigate to it
-            // once the portal is ready.
-            if (!videoUrl.isNullOrBlank()) {
-                pendingVideoUrl = videoUrl
-            }
             showWebView(savedUrl)
         }
+        // Show the notification alert dialog if this launch came from a notification tap
+        handleNotificationIntent(intent)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -178,14 +175,7 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        // Called when the activity is already running (singleTop) and a notification is tapped.
-        // The portal WebView is already loaded, so navigate directly — no two-step dance needed.
-        // Clear any stale pendingVideoUrl first to avoid a race with the fallback timer.
-        val videoUrl = intent.getStringExtra(OdcMessagingService.EXTRA_VIDEO_URL)
-        if (!videoUrl.isNullOrBlank()) {
-            pendingVideoUrl = null
-            navigateToPendingUrl(videoUrl)
-        }
+        handleNotificationIntent(intent)
     }
 
     // ---------- FCM registration flow ----------
@@ -331,6 +321,127 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * Reads notification extras from [intent] and shows the alert dialog when the
+     * intent came from a notification tap. Works for fresh launches and activity reuse.
+     * For foreground notifications all extras are set by OdcMessagingService.
+     * For background FCM taps, video_url / thumbnail_url / action come from the FCM
+     * data block (FCM puts data fields into the intent automatically); title/body are
+     * not available so we fall back to the app name.
+     */
+    private fun handleNotificationIntent(intent: Intent?) {
+        val action = intent?.getStringExtra(OdcMessagingService.EXTRA_ACTION)
+            ?.takeIf { it.isNotBlank() } ?: return
+        val title = intent.getStringExtra(OdcMessagingService.EXTRA_TITLE)
+            ?.takeIf { it.isNotBlank() } ?: getString(R.string.app_name)
+        val body         = intent.getStringExtra(OdcMessagingService.EXTRA_BODY) ?: ""
+        val videoUrl     = intent.getStringExtra(OdcMessagingService.EXTRA_VIDEO_URL)
+        val thumbnailUrl = intent.getStringExtra(OdcMessagingService.EXTRA_THUMBNAIL_URL)
+        showNotificationDialog(title, body, thumbnailUrl, videoUrl, action)
+    }
+
+    private fun showNotificationDialog(
+        title: String,
+        body: String,
+        thumbnailUrl: String?,
+        videoUrl: String?,
+        action: String
+    ) {
+        val view             = layoutInflater.inflate(R.layout.dialog_notification_alert, null)
+        val thumbnailContainer = view.findViewById<FrameLayout>(R.id.thumbnailContainer)
+        val ivThumbnail      = view.findViewById<ImageView>(R.id.ivThumbnail)
+        val pbThumbnail      = view.findViewById<ProgressBar>(R.id.pbThumbnail)
+        val tvAlertTitle      = view.findViewById<TextView>(R.id.tvAlertTitle)
+        val tvAlertBody       = view.findViewById<TextView>(R.id.tvAlertBody)
+        val tvDetectionBadge  = view.findViewById<TextView>(R.id.tvDetectionBadge)
+        val btnDismiss        = view.findViewById<Button>(R.id.btnDismiss)
+        val btnAction         = view.findViewById<Button>(R.id.btnAction)
+
+        tvAlertTitle.text = title
+        if (body.isNotBlank()) {
+            tvAlertBody.text = body
+            tvAlertBody.visibility = View.VISIBLE
+        }
+
+        // Detection badge — only for Motion Detected events with a known subject
+        if (title.equals("Motion Detected", ignoreCase = true)) {
+            data class BadgeSpec(val emoji: String, val colorInt: Int)
+            val spec: BadgeSpec? = when {
+                body.startsWith("Person detected", ignoreCase = true) ->
+                    BadgeSpec("🧍", 0xFFEF4444.toInt())  // red
+                body.startsWith("Car detected", ignoreCase = true) ->
+                    BadgeSpec("🚗", 0xFF0EA5E9.toInt())  // blue
+                body.startsWith("Bike detected", ignoreCase = true) ->
+                    BadgeSpec("🚲", 0xFF22C55E.toInt())  // green
+                else -> null
+            }
+            if (spec != null) {
+                val pct = Regex("""\((\d+)%\)""").find(body)?.groupValues?.get(1)
+                tvDetectionBadge.text = if (pct != null) "${spec.emoji}  $pct%" else spec.emoji
+                tvDetectionBadge.background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 50f * resources.displayMetrics.density
+                    setColor(spec.colorInt)
+                }
+                tvDetectionBadge.visibility = View.VISIBLE
+            }
+        }
+
+        val hasVideo = action == "play_video" && !videoUrl.isNullOrBlank()
+        btnAction.text = getString(
+            if (hasVideo) R.string.notification_btn_play_video
+            else R.string.notification_btn_open_events
+        )
+
+        val dialog = AlertDialog.Builder(this, R.style.Theme_OverDriveCompanion_Dialog)
+            .setView(view)
+            .setCancelable(true)
+            .create()
+
+        btnDismiss.setOnClickListener { dialog.dismiss() }
+
+        btnAction.setOnClickListener {
+            dialog.dismiss()
+            val target = when {
+                hasVideo -> videoUrl!!
+                else -> {
+                    val base = prefs.savedUrl?.let {
+                        if (it.startsWith("http://") || it.startsWith("https://")) it
+                        else "https://$it"
+                    }?.trimEnd('/') ?: return@setOnClickListener
+                    "$base/events.html"
+                }
+            }
+            navigateToPendingUrl(target)
+        }
+
+        // Fetch and display the thumbnail without authentication
+        if (!thumbnailUrl.isNullOrBlank()) {
+            thumbnailContainer.visibility = View.VISIBLE
+            Thread {
+                try {
+                    val conn = URL(thumbnailUrl).openConnection() as HttpURLConnection
+                    conn.connectTimeout = 8_000
+                    conn.readTimeout    = 8_000
+                    conn.connect()
+                    val bitmap = BitmapFactory.decodeStream(conn.inputStream)
+                    conn.disconnect()
+                    runOnUiThread {
+                        pbThumbnail.visibility = View.GONE
+                        if (bitmap != null) {
+                            ivThumbnail.setImageBitmap(bitmap)
+                            ivThumbnail.visibility = View.VISIBLE
+                        }
+                    }
+                } catch (e: Exception) {
+                    runOnUiThread { pbThumbnail.visibility = View.GONE }
+                }
+            }.start()
+        }
+
+        dialog.show()
+    }
+
+    /**
      * JavaScript bridge injected into the portal WebView.
      * The portal page should call window.AndroidBridge.setAuthToken(jwt)
      * after a successful login to enable JWT-authenticated push registration.
@@ -340,14 +451,6 @@ class MainActivity : AppCompatActivity() {
         fun setAuthToken(jwt: String) {
             if (jwt.isNotBlank()) {
                 prefs.authJwt = jwt
-                // Primary deep-link trigger: the JWT probe script runs after the SPA has
-                // initialised, so this fires at exactly the right moment — after the portal
-                // router is ready but before any default-route navigation completes.
-                val pending = pendingVideoUrl
-                if (pending != null) {
-                    pendingVideoUrl = null
-                    runOnUiThread { navigateToPendingUrl(pending) }
-                }
             }
         }
     }
@@ -431,19 +534,6 @@ class MainActivity : AppCompatActivity() {
                     // Probe common JWT storage locations so the bridge is populated
                     // even when the user is already logged in on page load.
                     view.evaluateJavascript(JWT_PROBE_SCRIPT, null)
-                    // Fallback deep-link trigger: if the JWT probe didn't fire
-                    // setAuthToken within 1.5 s (e.g. user is not yet logged in),
-                    // attempt navigation anyway. Re-checks pendingVideoUrl inside
-                    // the lambda so it's a no-op if setAuthToken already consumed it.
-                    if (pendingVideoUrl != null) {
-                        view.postDelayed({
-                            val pending = pendingVideoUrl
-                            if (pending != null) {
-                                pendingVideoUrl = null
-                                navigateToPendingUrl(pending)
-                            }
-                        }, 1500)
-                    }
                 }
             }
         }
